@@ -16,7 +16,8 @@ using namespace Pistache::Rest;
 // Convenient namespace alias
 using json = nlohmann::json;
 
-class Toothbrush {
+class Toothbrush
+{
 public:
     Toothbrush()
     {
@@ -32,6 +33,7 @@ enum eType
     Only_Lower,
     Warning_Safe_Teeths_Full_Clean
 };
+
 struct Config
 {
     std::string Name;
@@ -81,7 +83,8 @@ struct Brushing
 
 std::vector<Brushing*> saved_Brushing;
 
-void helloRoute(const Rest::Request& request, Http::ResponseWriter response) {
+void helloRoute(const Rest::Request& request, Http::ResponseWriter response)
+{
     // Read the request data
     cout << "Received a request from IP address " << request.address().host() << '\n';
 
@@ -110,7 +113,7 @@ void setConfigure(const Rest::Request& request, Http::ResponseWriter response)
         }
     }
 
-    if(!foundVar)
+    if (!foundVar)
     {
         ourConfiguration = new Config();
         saved_Configs.push_back(ourConfiguration);
@@ -151,7 +154,7 @@ std::string getModelFromNumber(int p)
     Only_Lower,
     Warning_Safe_Teeths_Full_Clean
     */
-    switch(p)
+    switch (p)
     {
     case 1:
         return "Full_Clean";
@@ -174,10 +177,10 @@ void getConfigure(const Rest::Request& request, Http::ResponseWriter response)
         if(oConfig->Name == TextParam)
         {
             returnString = "Name : " + TextParam + "\nAge : " + to_string(oConfig->age) + "\nModel setted on : " + getModelFromNumber((int)oConfig->program) + "\n";
-            if(!oConfig->STeeth.empty())
+            if (!oConfig->STeeth.empty())
             {
                 returnString += "These teeth are supervised : ";
-                for(unsigned int i = 0 ; i < oConfig->STeeth.size(); ++i)
+                for (unsigned int i = 0; i < oConfig->STeeth.size(); ++i)
                     returnString += to_string(oConfig->STeeth[i]) + " ";
             }
         }
@@ -437,10 +440,115 @@ void getDirections(const Rest::Request &request, Http::ResponseWriter response)
     response.send(Http::Code::Ok, returnString.c_str());
 }
 
+std::string generateJSONTartrumObject(int index, float intensity, bool hasTartrum)
+{
+    std::string output = "\n\t{";
+    output += "\n\t\t'toothNumber': " + std::to_string(index) + ",\n\t\t'intensity': '" + std::to_string(intensity) + "%',\n\t\t'health': '" + (hasTartrum ? "Tartrum'" : "Healthy'");
+    output += "\n\t}";
+    if (index < 32)
+    {
+        output += ",";
+    }
+    return output;
+}
 
-// void getHealthCheck(const Rest::Request& request, Http::ResponseWriter response){
+std::string checkParams(int index, int intensity)
+{
+    if (index > 32)
+        return "Invalid parameters";
+    if (intensity < 0 || intensity > 256)
+        return "Intensity must be between 0 and 256";
+    else
+        return "VALID";
+}
 
-// }
+void getTeethCheck(const Rest::Request &request, Http::ResponseWriter response)
+{
+    std::string returnString = "[";
+    auto TextParam = request.param(":statsArray").as<std::string>();
+    std::cout << "Input Received : " << TextParam.c_str() << '\n';
+    char *auxText = new char[strlen(TextParam.c_str())];
+    strcpy(auxText, TextParam.c_str());
+    char *token = strtok(auxText, ";");
+    float tartrumThreshold = 60;
+    int index = 1;
+
+    while (token != NULL)
+    {
+        int intensity = atoi(token);
+        float intensityPercentage = intensity * 100 / 256;
+        // Check if the color intensity exceeds threshold
+        bool hasTartrum = intensityPercentage > tartrumThreshold;
+
+        // Check parameters sent to request
+        std::string paramsError = checkParams(index, intensity);
+        if (paramsError != "VALID")
+        {
+            response.send(Http::Code::Bad_Request, paramsError.c_str());
+            return;
+        }
+
+        returnString += generateJSONTartrumObject(index, intensityPercentage, hasTartrum);
+
+        ++index;
+        token = strtok(NULL, ";");
+    }
+
+    returnString += "\n]";
+    response.send(Http::Code::Ok, returnString.c_str());
+}
+
+
+void getGumBleeding(const Rest::Request &request, Http::ResponseWriter response)
+{
+    std::string returnString = "{\n";
+    auto TextParam = request.param(":statsArray").as<std::string>();
+    std::cout << "Input Received : " << TextParam.c_str() << '\n';
+    char *auxText = new char[strlen(TextParam.c_str())];
+    strcpy(auxText, TextParam.c_str());
+    char *token = strtok(auxText, ";");
+    float bleedingThreshold = 60;
+    int index = 1;
+
+    bool isBleeding = false;
+    std::string bleedAreas = "[\n";
+
+    while (token != NULL)
+    {
+        int intensity = atoi(token);
+        float intensityPercentage = intensity * 100 / 256;
+        // Check if the color intensity exceeds threshold
+        bool currentToothBleed = intensityPercentage > bleedingThreshold;
+        if (!isBleeding)
+        {
+            isBleeding = currentToothBleed;
+        }
+        // Check parameters sent to request
+        std::string paramsError = checkParams(index, intensity);
+        if (paramsError != "VALID")
+        {
+            response.send(Http::Code::Bad_Request, paramsError.c_str());
+            return;
+        }
+
+        if (currentToothBleed)
+        {
+            if (bleedAreas.length() > 2)
+                bleedAreas += ",\n";
+            bleedAreas += "\t\t" + std::to_string(index);
+        }
+
+        ++index;
+        token = strtok(NULL, ";");
+    }
+
+    string gumBleeding = isBleeding ? "true" : "false";
+    returnString += "\t'hasBleeding' : " + gumBleeding;
+    returnString += ",\n\t'areas' : " + bleedAreas;
+    returnString += "\n\t]\n}";
+
+    response.send(Http::Code::Ok, returnString.c_str());
+}
 
 int main() {
     const std::string clientId = "smarteeth";
@@ -496,7 +604,11 @@ int main() {
     router.post("/configure", Routes::bind(setConfigure));
     router.get("/configure/:configurationName", Routes::bind(getConfigure));
 
-    // router.get("/check/health/:statsArray", Routes::bind(getHealthCheck));
+    //  Usage :
+    //  GET : localhost:9080/check/teeth/12;10;123;32;1;23;4;234;123;32;1;23;4;234;123;32;1;23;4;32;1;23;4;234;123;32;1;23;4;23;4;4
+    router.get("/check/teeth/:statsArray", Routes::bind(getTeethCheck));
+    //  GET : localhost:9080/check/gums/12;10;123;32;1;23;4;234;123;32;1;23;4;234;123;32;1;23;4;32;1;23;4;234;123;32;1;23;4;23;4;4
+    router.get("/check/gums/:statsArray", Routes::bind(getGumBleeding));
     //----------------------------------------------------------------------
     // Configure server
     const string host = "localhost";
