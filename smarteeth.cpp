@@ -438,6 +438,10 @@ void getDirections(const Rest::Request &request, Http::ResponseWriter response)
 }
 
 
+// void getHealthCheck(const Rest::Request& request, Http::ResponseWriter response){
+
+// }
+
 int main() {
     const std::string clientId = "smarteeth";
 
@@ -491,6 +495,8 @@ int main() {
     */
     router.post("/configure", Routes::bind(setConfigure));
     router.get("/configure/:configurationName", Routes::bind(getConfigure));
+
+    // router.get("/check/health/:statsArray", Routes::bind(getHealthCheck));
     //----------------------------------------------------------------------
     // Configure server
     const string host = "localhost";
