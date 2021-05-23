@@ -4,11 +4,15 @@
 #include <vector>
 #include <pistache/endpoint.h>
 #include <pistache/router.h>
+#include <nlohmann/json.hpp>
 
 using namespace std;
 using namespace Pistache;
 using namespace Pistache::Http;
 using namespace Pistache::Rest;
+
+// Convenient namespace alias
+using json = nlohmann::json;
 
 class Toothbrush {
 public:
@@ -24,12 +28,12 @@ enum eType
     Only_Lower,
     Warning_Safe_Teeths_Full_Clean
 };
-struct Config 
+struct Config
 {
- char* Name;
- int age;
- eType program;
- std::vector<int> STeeth;
+    std::string Name;
+    int age;
+    eType program;
+    std::vector<int> STeeth;
 };
 std::vector<Config*> saved_Configs;
 /*
@@ -50,24 +54,28 @@ void helloRoute(const Rest::Request& request, Http::ResponseWriter response) {
 
     // Send a reply
     response.send(Http::Code::Ok, "Hello world!");
-} 
+}
+
 void setConfigure(const Rest::Request& request, Http::ResponseWriter response)
 {
     Config* ourConfiguration;
-    auto TextParam = request.param(":configureJSON").as<std::string>();
-    std::cout << "Input Received : " <<TextParam.c_str() << '\n';
-    char* auxText = new char[strlen(TextParam.c_str())];
-    strcpy(auxText,TextParam.c_str());
-    char* token = strtok(auxText,";");
-    int index = 1;
+
+    const auto params = json::parse(request.body());
+
+    std::cout << "Input received: " << params << '\n';
+
+    const auto name = params["name"];
+
     bool foundVar = false;
     for(Config* &oC : saved_Configs)
-        if(!strcmp(oC->Name,token))
+    {
+        if(oC->Name == name)
         {
             foundVar = true;
             ourConfiguration = oC;
             ourConfiguration->STeeth.clear(); //ATENTIE!! Numele este unic, daca se primesc alte setari cu acelasi nume se considera update.
         }
+    }
 
     if(!foundVar)
     {
@@ -75,42 +83,30 @@ void setConfigure(const Rest::Request& request, Http::ResponseWriter response)
         saved_Configs.push_back(ourConfiguration);
     }
 
-    while(token != NULL)
+    ourConfiguration->Name = name;
+    ourConfiguration->age = params["age"];
+    ourConfiguration->program = params["program"];
+
+    for (int tooth : params["teeth"])
     {
-        if(index == 1)
-        { 
-            ourConfiguration->Name = new char[strlen(token)];   
-            strcpy(ourConfiguration->Name,token);
-        }
-        else if(index == 2)
+        if (tooth < 1 || tooth > 32)
         {
-            ourConfiguration->age = atoi(token);
+            std::cout << "Ignoring invalid tooth " << tooth << '\n';
+            continue;
         }
-        else if(index == 3)
+
+        // Elimina duplicatele
+        if (find(ourConfiguration->STeeth.begin(), ourConfiguration->STeeth.end(), tooth)
+            != ourConfiguration->STeeth.end())
         {
-            eType ourType = (eType)atoi(token);
-            ourConfiguration->program = ourType;
+            std::cout << "Ignoring duplicate tooth " << tooth << '\n';
+            continue;
         }
-        if(strstr(token,","))
-        {
-            char* aux_token = strtok(token, ",");
-            while(aux_token != NULL)
-            {
-                int teeth = atoi(aux_token);
-                if(teeth < 1 || teeth > 32 || std::find(ourConfiguration->STeeth.begin(),ourConfiguration->STeeth.end(),teeth) != ourConfiguration->STeeth.end())
-                {
-                    aux_token = strtok(NULL, ",");
-                    continue;
-                }
-                ourConfiguration->STeeth.push_back(teeth);
-                aux_token = strtok(NULL, ",");
-            }
-            break;
-        }
-        ++index;
-        token = strtok(NULL, ";");
+
+        ourConfiguration->STeeth.push_back(tooth);
+
     }
-    delete auxText;
+
     response.send(Http::Code::Ok, "Configuration Saved!");
 }
 std::string getModelFromNumber(int p)
@@ -140,8 +136,8 @@ void getConfigure(const Rest::Request& request, Http::ResponseWriter response)
     std::string returnString = "No Configuration Available!";
     auto TextParam = request.param(":configurationName").as<std::string>();
     for(Config* &oConfig : saved_Configs)
-        if(!strcmp(oConfig->Name,TextParam.c_str()))
-        {   
+        if(oConfig->Name == TextParam)
+        {
             returnString = "Name : " + TextParam + "\nAge : " + to_string(oConfig->age) + "\nModel setted on : " + getModelFromNumber((int)oConfig->program) + "\n";
             if(!oConfig->STeeth.empty())
             {
@@ -159,14 +155,23 @@ int main() {
     router.get("/hello", Routes::bind(helloRoute));
     //----------------------------------------------------------------------
     /*
-    Usage : 
-    Post : localhost:9080/configure/David;24;3;1,2,6,4,2,6,4,1,36,99,8
-    Get : localhost:9080/configure/David
-    Tin sa mentionez faptul ca nu cred ca am abordat toate cazurile, erorile, s.a.m.d 
+    Usage :
+
+    POST /configure
+    {
+        "name": "David",
+        "age": 24,
+        "program": 3,
+        "teeth": [1,2,6,4,2,6,4,1,36,99,8]
+    }
+
+    GET /configure/David
+
+    Tin sa mentionez faptul ca nu cred ca am abordat toate cazurile, erorile, s.a.m.d
     deci exista posibilitate sa revin si sa le dau update.
 
     */
-    router.post("/configure/:configureJSON", Routes::bind(setConfigure));
+    router.post("/configure", Routes::bind(setConfigure));
     router.get("/configure/:configurationName", Routes::bind(getConfigure));
     //----------------------------------------------------------------------
     // Configure server

@@ -2,6 +2,12 @@
 
 Software care simulează o periuță de dinți inteligentă.
 
+## Dependencies
+
+Pe Ubuntu, trebuie instalate și următoarele package-uri:
+
+- `nlohmann-json3-dev`
+
 ## Rulare
 
 Pentru a compila și rula serverul se poate folosi comanda `make all`.
