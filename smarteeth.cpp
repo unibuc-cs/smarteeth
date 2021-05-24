@@ -3,12 +3,16 @@
 #include <string.h>
 #include <vector>
 #include <utility>
+#include <chrono>
+#include <ctime>
+#include <algorithm>
 #include <pistache/endpoint.h>
 #include <pistache/router.h>
 #include <nlohmann/json.hpp>
 #include <mqtt/client.h>
 
 using namespace std;
+using namespace chrono;
 using namespace Pistache;
 using namespace Pistache::Http;
 using namespace Pistache::Rest;
@@ -34,12 +38,29 @@ enum eType
     Warning_Safe_Teeths_Full_Clean
 };
 
+struct brushingData //toate datele retinute in urma unui periaj
+{
+    int time;            //secunde
+    vector<int> tartrum; //vector cu dintii afectati (am presupus ca notam fiecare dinte cu un int)
+    bool bleeding;       //true daca s-a identificat o sangerare in timpul periajului
+};
+
+struct userStats
+{
+    vector<vector<brushingData>> oneYearHistory; //vector de zile; o zi are mai multe periaje
+    int d, m, y;                                 //data ultimului periaj
+    vector<int> tartrumHistory = {0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0}; //default value, nu stiu daca e ok asa
+    int minimBrushings = 0;
+    int maximBrushings = 0;
+};
+
 struct Config
 {
     std::string Name;
     int age;
     eType program;
     std::vector<int> STeeth; // dintii
+    userStats stats;
 };
 
 std::vector<Config*> saved_Configs; //configuratii salvate
@@ -54,6 +75,8 @@ https://ibb.co/KhfB2Kp
 da cuaie stiu ca am scris theets calmeaza-te nu urla
 
 */
+
+
 
 enum LedsColor //culorile pe care le ia ledul pentru a stabili in ce directie urmeaza sa mearga utilizatorul
 {
@@ -187,6 +210,170 @@ void getConfigure(const Rest::Request& request, Http::ResponseWriter response)
     response.send(Http::Code::Ok, returnString.c_str());
 }
 
+//-----------------------------------------------------------
+
+vector<vector<brushingData>> oneYearHistory;
+int d, m, y;
+int nd, nm, ny;
+vector<int> tartrumHistory;
+auto start = high_resolution_clock::now();
+auto finish = high_resolution_clock::now();
+int minimBrushings;
+int maximBrushings;
+
+void selectUserStats(userStats i) //salvez in variabilele globale datele userului curent
+{
+    oneYearHistory = i.oneYearHistory;
+    d = i.d;
+    m = i.m;
+    y = i.y;
+    tartrumHistory = i.tartrumHistory;
+    minimBrushings = i.minimBrushings;
+    maximBrushings = i.maximBrushings;
+}
+
+void saveUserStats(userStats &i) //lucrez cu var globale, iar la final le salvez la user
+{
+    i.oneYearHistory = oneYearHistory;
+    i.d = d;
+    i.m = m;
+    i.y = y;
+    i.tartrumHistory = tartrumHistory;
+    i.minimBrushings = minimBrushings;
+    i.maximBrushings = maximBrushings;
+}
+
+void addDay()
+{
+    vector<brushingData> brushings;
+    oneYearHistory.push_back(brushings);
+}
+
+void startCronometru()
+{
+    start = high_resolution_clock::now();
+    time_t now = time(0);
+    tm *ltm = localtime(&now);
+    nd = ltm->tm_mday;
+    nm = 1 + ltm->tm_mon;
+    ny = 1900 + ltm->tm_year;
+}
+
+void stopCronometru()
+{
+    finish = high_resolution_clock::now();
+}
+
+brushingData p;
+void saveBrushingData()
+{
+
+    p.time = duration_cast<seconds>(finish - start).count();
+
+    if (ny > y)
+    {
+        addDay();
+    }
+    else if (nm > m)
+    {
+        addDay();
+    }
+    else if (nd > d)
+    {
+        addDay();
+    }
+    d = nd;
+    m = nm;
+    y = ny;
+    oneYearHistory[oneYearHistory.size() - 1].push_back(p); //adaug periaj in ziua curenta
+    if (oneYearHistory.size() > 365)
+    {
+        oneYearHistory.erase(oneYearHistory.begin()); // sterg cea mai veche zi
+    }
+}
+
+string statistics()
+{
+    int timeMonth = 0;
+    int timeYear = 0;
+    int bleedingMonth = 0;
+    int bleedingYear = 0;
+    //nr periaje pe zi difera, folosesc countere pt a calcula mediile
+    int nrMonth = 0;
+    int nrYear = 0;
+
+    for (unsigned int i = 0; i < oneYearHistory.size(); i++)
+    {
+        for (unsigned int j = 0; j < oneYearHistory[i].size(); j++)
+        {
+            nrYear++;
+            brushingData p = oneYearHistory[i][j];
+            timeYear += p.time;
+            if (p.bleeding)
+            {
+                bleedingYear++;
+                if (oneYearHistory.size() - i <= 30)
+                {
+                    bleedingMonth++;
+                }
+            }
+            if (oneYearHistory.size() - i <= 30)
+            {
+                nrMonth++;
+            }
+        }
+    }
+
+    timeMonth /= nrMonth;
+    timeYear /= nrYear;
+    bleedingMonth /= nrMonth;
+    bleedingMonth *= 100; //procentual
+    bleedingYear /= nrYear;
+    bleedingYear *= 100;
+
+    vector<int> t = oneYearHistory.back().back().tartrum;
+    for (unsigned int i = 0; i < t.size(); i++)
+    {
+        tartrumHistory[t[i]]++; //daca am gasit tartru, cresc nr de periaje necesare
+    }
+    for (int i = 0; i < 32; i++)
+    {
+        if (find(t.begin(), t.end(), i) == t.end() && tartrumHistory[i] > 0) //daca dintele e curat, dar la periajele trecute nu era
+        {
+            //statistica legata de tartru este de forma
+            //"Sunt necesare intre minimPeriaje si maximPeriaje pentru a elimina tartrul de pe un dinte."
+
+            if (tartrumHistory[i] < minimBrushings)
+                minimBrushings = tartrumHistory[i];
+            if (tartrumHistory[i] > maximBrushings)
+                maximBrushings = tartrumHistory[i];
+            tartrumHistory[i] = 0; //resetam counterul
+        }
+    }
+
+    string returnStatistics;
+    returnStatistics += "Statistics \n";
+    returnStatistics += "Last month: \n brushing time = ";
+    returnStatistics += timeMonth;
+    returnStatistics += "\n brushings with bleeding = ";
+    returnStatistics += bleedingMonth + "% \n";
+    returnStatistics += "Last year: \n brushing time = ";
+    returnStatistics += timeYear;
+    returnStatistics += "\n brushings with bleeding = ";
+    returnStatistics += bleedingYear;
+    returnStatistics += "% \n";
+    returnStatistics += "To get rid of tartrum you need between ";
+    returnStatistics += minimBrushings;
+    returnStatistics += " and ";
+    returnStatistics += maximBrushings;
+    returnStatistics += "\n";
+
+    return returnStatistics;
+}
+
+//------------------------------------------------------------
+
+
 int getLedsColorFromString(string& s)
 {
     /*
@@ -240,10 +427,12 @@ std::vector<string> Colors;
 
 ////configuratia va fi luata de la utilizator, iar perierea se va face in functie de dintii salvati pentru utilizator
 //si de culoarea cu care ii definim pe acestia
-void setDirectionAndLedsGraphic(const Config &configuration)
+void setDirectionAndLedsGraphic(Config &configuration)
 {
     //Config configuration = getConfigure;
     //afla cum faci rost de configuratie din request direct
+
+    selectUserStats(configuration.stats);
 
     Brushing *currentBrushing = new Brushing();
     std::cout << "User name:" << configuration.Name << '\n';
@@ -279,7 +468,8 @@ void setDirectionAndLedsGraphic(const Config &configuration)
         current_teeth.second = configuration.STeeth[configuration.STeeth.size() - configuration.STeeth[configuration.STeeth.size() / 4] + 1];
         nb_teeth = configuration.STeeth.size() / 2;
         det_dirct = -1;
-    } else
+    }
+    else
     {
         // dintii nu mai trebuie periati
         need_brushing = 1;
@@ -298,6 +488,7 @@ void setDirectionAndLedsGraphic(const Config &configuration)
 
     for (int i; i < Colors.size(); i++)
     {
+        startCronometru(); //porneste cronometrul pentru periere
         //salvez culorile ledurilor si directia pe care o indica
         currentBrushing->Leds.push_back(Colors[i]);
         currentBrushing->Directions.push_back(getDirectionFromNumber(getLedsColorFromString(Colors[i])));
@@ -308,7 +499,8 @@ void setDirectionAndLedsGraphic(const Config &configuration)
             if (!(std::count(verif.begin(), verif.end(), 0)))
             {
                 returnString += "\n Completely brushing!";
-            } else
+            }
+            else
             {
                 //nu avem senzori aprinsi, dar avem ce dinti peria
                 outputBrace = "O"; //output pentru bratara aka ledul este gri nu se periaza, vezi cum faci output pt bratara asta
@@ -343,10 +535,11 @@ void setDirectionAndLedsGraphic(const Config &configuration)
                     current_teeth.second = configuration.STeeth[configuration.STeeth.size() / 4] + 1;
                     returnString += " After you rinse your mouth, we restart the programm from " + current_teeth.first;
                     returnString += " and " + current_teeth.second;
-                    returnString +=  " teeth. \n";
+                    returnString += " teeth. \n";
                     // nu marcam dintele care periaza ca fiind periat deoarce vom reveni asupra lui in caz ca va fi nevoie
                 }
-            } else
+            }
+            else
             {
                 int cst = getLedsColorFromString(Colors[i]);
                 if (cst == 2) //dreapta, deci merg inapoi
@@ -395,7 +588,6 @@ void setDirectionAndLedsGraphic(const Config &configuration)
                 }
             }
         }
-
     }
 
     //am terminat vectorul de leduri, nu mai sunt directii recomandate, dar totusi mai avem dinti neperiati
@@ -411,10 +603,12 @@ void setDirectionAndLedsGraphic(const Config &configuration)
         x = std::find(verif.begin(), verif.end(), 0);
     }
 
+    std::string Statistics = statistics();
+    saveUserStats(configuration.stats);
+    returnString += Statistics;
     currentBrushing->History.push_back(returnString); //se creaza istoricul cu dintii periati
     saved_Brushing.push_back(currentBrushing);
 }
-
 void getDirections(const Rest::Request &request, Http::ResponseWriter response)
 {
     std::string returnString = "No brushing available!";
@@ -490,6 +684,11 @@ void getTeethCheck(const Rest::Request &request, Http::ResponseWriter response)
 
         returnString += generateJSONTartrumObject(index, intensityPercentage, hasTartrum);
 
+        if(hasTartrum)
+        {
+			p.tartrum.push_back(index-1);
+		}
+
         ++index;
         token = strtok(NULL, ";");
     }
@@ -542,7 +741,9 @@ void getGumBleeding(const Rest::Request &request, Http::ResponseWriter response)
         token = strtok(NULL, ";");
     }
 
-    string gumBleeding = isBleeding ? "true" : "false";
+	p.bleeding = isBleeding; //adaugat de Albu, sper ca n-am stricat nimic :(
+
+	string gumBleeding = isBleeding ? "true" : "false";
     returnString += "\t'hasBleeding' : " + gumBleeding;
     returnString += ",\n\t'areas' : " + bleedAreas;
     returnString += "\n\t]\n}";
