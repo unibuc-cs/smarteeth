@@ -13,5 +13,5 @@ clean:
 run:
 	./smarteeth
 
-smarteeth: smarteeth.cpp
-	$(CXX) $< -o $@ $(CXXFLAGS) $(LDFLAGS)
+smarteeth: smarteeth.o brushing.o configuration.o mqtt.o
+	$(CXX) $^ -o $@ $(CXXFLAGS) $(LDFLAGS)
