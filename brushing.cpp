@@ -88,6 +88,16 @@ const Configuration *getCurrentConfiguration()
     return currentConfig;
 }
 
+int getCurrentTooth()
+{
+    if (!brushingInProgress)
+    {
+        throw std::runtime_error("No brushing currently in progress");
+    }
+
+    return timeSpentOnArea.size() + 1;
+}
+
 void moveBrush()
 {
     if (!brushingInProgress)

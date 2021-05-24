@@ -32,6 +32,9 @@ void stopBrushing();
 
 const Configuration *getCurrentConfiguration();
 
+// Intoarce indicele dintelui periat in acest moment.
+int getCurrentTooth();
+
 // Cand periuta este mutata, retine ce durata a avut periajul
 // pe zona precedenta.
 void moveBrush();

@@ -12,6 +12,7 @@
 
 #include "brushing.hpp"
 #include "configuration.hpp"
+#include "health.hpp"
 #include "mqtt.hpp"
 
 using namespace Pistache;
@@ -158,6 +159,39 @@ void checkBrushingTimeRoute(const Rest::Request &request, Http::ResponseWriter r
     response.send(Http::Code::Ok, j.dump());
 }
 
+void updateToothColorRoute(const Rest::Request &request, Http::ResponseWriter response)
+{
+    const auto value = request.param(":value").as<int>();
+
+    updateToothColor(value);
+
+    response.send(Http::Code::Ok);
+}
+
+void checkTartrumRoute(const Rest::Request &request, Http::ResponseWriter response)
+{
+    const auto info = checkTartrum();
+
+    json j = {
+        {"tooth", getCurrentTooth()},
+        {"intensity", info.intensity},
+        {"hasTartrum", info.overThreshold}};
+
+    response.send(Http::Code::Ok, j.dump());
+}
+
+void checkGumBleedingRoute(const Rest::Request &request, Http::ResponseWriter response)
+{
+    const auto info = checkGumBleeding();
+
+    json j = {
+        {"tooth", getCurrentTooth()},
+        {"intensity", info.intensity},
+        {"isBleeding", info.overThreshold}};
+
+    response.send(Http::Code::Ok, j.dump());
+}
+
 int main()
 {
     // Set up routes
@@ -191,12 +225,10 @@ int main()
     // GET /brushing/time
     router.get("/brushing/time", Routes::bind(checkBrushingTimeRoute));
 
-    //  Usage :
-    //  GET : localhost:9080/check/teeth/12;10;123;32;1;23;4;234;123;32;1;23;4;234;123;32;1;23;4;32;1;23;4;234;123;32;1;23;4;23;4;4
-    // router.get("/check/teeth/:statsArray", Routes::bind(getTeethCheck));
-    // //  GET : localhost:9080/check/gums/12;10;123;32;1;23;4;234;123;32;1;23;4;234;123;32;1;23;4;32;1;23;4;234;123;32;1;23;4;23;4;4
-    // router.get("/check/gums/:statsArray", Routes::bind(getGumBleeding));
-    // //----------------------------------------------------------------------
+    // POST /health/toothColor/<integer value>
+    router.post("/health/toothColor/:value", Routes::bind(updateToothColorRoute));
+    router.get("/health/tartrum", Routes::bind(checkTartrumRoute));
+    router.get("/health/gumBleeding", Routes::bind(checkGumBleedingRoute));
 
     // Configure server
     const std::string host = "localhost";
