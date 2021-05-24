@@ -10,235 +10,169 @@ std::pair<LedsColor, Direction> getDirection()
     return std::make_pair(LedsColor::Red, Direction::Turn_Off);
 }
 
-/*
-int getLedsColorFromString(string &s)
+std::vector<vector<unsigned>> getDirections(Brushing &brush, int index)
 {
-	// Grey = 1,
-	// Blue,
-	// Green,
-	// Red
-    string str;
-    str = s;
-    for (int x = 0; x < str.length(); x++)
-        s[x] = toupper(str[x]);
-    if (str.compare("GREY") == 0)
-        return 1;
-    if (str.compare("BLUE") == 0)
-        return 2;
-    if (str.compare("GREEN") == 0)
-        return 3;
-    if (str.compare("RED") == 0)
-        return 4;
-
-    return -1;
-}
-
-std::string getDirectionFromNumber(int nr)
-{
-	// No_Direction = 1,
-	// Right,
-	// Left,
-	// Turn_Off,
-	// Warning_Wrong_Direction
-    switch (nr)
+    std::vector<int>::iterator it = std::find(bleeds.begin(), bleeds.end(), index);
+    if (it == bleeds.end())
     {
-    case 1:
-        return "No Direction";
-    case 2:
-        return "To Right";
-    case 3:
-        return "To Left";
-    case 4:
-        return "Turn Off";
-    default:
-        return "Unknown input";
+        //dintele sangereaza
+        brush.Leds.push_back("Red");
+        brush.Graphic_Directions.push_back("X");
     }
+    if ((index == 1 || index == 32) || (index > 1 && index <= 8) || (index >= 25 && index < 32)) //posib ma aflu la primul dinte de sus sau la ultimul de jos, trebuie sa merg spre stanga
+    {
+        vector<vector<unsigned>> matrix{
+            {0, 0, 0, 0, 1, 0, 0, 0},
+            {0, 0, 0, 0, 0, 1, 0, 0},
+            {0, 0, 0, 0, 0, 0, 1, 0},
+            {1, 1, 1, 1, 1, 1, 1, 1},
+            {0, 0, 0, 0, 0, 0, 1, 0},
+            {0, 0, 0, 0, 0, 1, 0, 0},
+            {0, 0, 0, 0, 1, 0, 0, 0}};
+        brush.Leds.push_back("Purple");
+        brush.Graphic_Directions.push_back("==>");
+        brush.Directions.push_back("Right");
+        return matrix;
+    }
+    if ((index == 16 || index == 17) || (index > 17 && index <= 24) || (index >= 9 && index <= 16)) //posib sa ma aflu la ultimul dinte de sus sau la primul de jos, deci dreapta
+    {
+        vector<vector<unsigned>> matrix{
+            {0, 0, 0, 1, 0, 0, 0, 0},
+            {0, 0, 1, 0, 0, 0, 0, 0},
+            {0, 1, 0, 0, 0, 0, 0, 0},
+            {1, 1, 1, 1, 1, 1, 1, 1},
+            {0, 1, 0, 0, 0, 0, 0, 0},
+            {0, 0, 1, 0, 0, 0, 0, 0},
+            {0, 0, 0, 1, 0, 0, 0, 0}};
+        brush.Leds.push_back("Blue");
+        brush.Graphic_Directions.push_back("<==");
+        brush.Directions.push_back("Left");
+        return matrix;
+    }
+// daca nu e una din variantele mentionate in ifuri, am ales in mod arbitrara directia
 }
 
-std::vector<string> Colors;
-
-////configuratia va fi luata de la utilizator, iar perierea se va face in functie de dintii salvati pentru utilizator
-//si de culoarea cu care ii definim pe acestia
-void setDirectionAndLedsGraphic(Config &configuration)
+void setDirections(Config &configuration)
 {
-    //Config configuration = getConfigure;
-    //afla cum faci rost de configuratie din request direct
-
     selectUserStats(configuration.stats);
 
     Brushing *currentBrushing = new Brushing();
     std::cout << "User name:" << configuration.Name << '\n';
-    int nb_teeth;
-    int need_brushing = 0;
-    pair<int, int> current_teeth;
-    int det_dirct;
-    std::string returnString = "No colors for leds."; //retin ceea ce trebuie sa apra in istoric
-    //pentru a afisa pe bratara, voi afisa efectiv semne pentru a marca directia, sageti, x sau o o sa ti dai seama pe parcurs
-    std::string outputBrace = "O";
+    std::string returnString = "";
+    std::vector<int> verif(configuration.STeeth.size(), 0);
+    startCronometru(); //porneste cronometrul pentru periere
 
-    //verificare ce zona trebuie periata conf programului ales
-    if ((int)configuration.program == 1)
+    if ((int)configuration.program == 1 || (int)configuration.program == 2)
     {
-        //daca trebuie periere completa, pp ca periajul incepe de la cei 2 incisivi de sus
-        current_teeth.first = configuration.STeeth[configuration.STeeth.size() / 4]; //am folosit peste tot steeth.size pentru ca m am gandit ca poate unii au mai putini dinti, gen copiii carora le au cazut, daca ne complicam prea mult cu asta, modific cu masuri exacte
-        current_teeth.second = configuration.STeeth[configuration.STeeth.size() / 4] + 1;
-        nb_teeth = configuration.STeeth.size();
-        det_dirct = 0;
-    }
-    else if ((int)configuration.program == 2)
-    {
-        // daca trebuie periere doar sus, pp ca periajul incepe de la cei 2 incisivi de sus
-        current_teeth.first = configuration.STeeth[configuration.STeeth.size() / 4];
-        current_teeth.second = configuration.STeeth[configuration.STeeth.size() / 4] + 1;
-        nb_teeth = configuration.STeeth.size() / 2;
-        det_dirct = 1;
-    }
-    else if ((int)configuration.program == 3)
-    {
-        //trebuie periati doar cei de jos, presupunem ca periajul incepe de la cei doi incisivi de jos
-        current_teeth.first = configuration.STeeth[configuration.STeeth.size() - configuration.STeeth[configuration.STeeth.size() / 4]];
-        current_teeth.second = configuration.STeeth[configuration.STeeth.size() - configuration.STeeth[configuration.STeeth.size() / 4] + 1];
-        nb_teeth = configuration.STeeth.size() / 2;
-        det_dirct = -1;
-    }
-    else
-    {
-        // dintii nu mai trebuie periati
-        need_brushing = 1;
-        current_teeth.first = 1;
-        current_teeth.second = 2;
-        nb_teeth = 0;
-    }
-
-    //au fost periati dintii corespunzatori inceputului
-    std::vector<int> verif(configuration.STeeth.size(), need_brushing);
-    verif[current_teeth.first] = 1;
-    verif[current_teeth.second] = 1;
-
-    if (Colors.size())
-        returnString = "";
-
-    for (int i; i < Colors.size(); i++)
-    {
-        startCronometru(); //porneste cronometrul pentru periere
-        //salvez culorile ledurilor si directia pe care o indica
-        currentBrushing->Leds.push_back(Colors[i]);
-        currentBrushing->Directions.push_back(getDirectionFromNumber(getLedsColorFromString(Colors[i])));
-
-        //calculez ce inseamna directiile in functie de perierea care are loc
-        if (getLedsColorFromString(Colors[i]) == 1)
+        //periere completa sau de sus, incep dinte 9->16 apoi 1->8, 24->17, 25->32
+        for (unsigned i = 9; i <= 16; i++)
         {
-            if (!(std::count(verif.begin(), verif.end(), 0)))
+            returnString += "Tooth ";
+            returnString += i + "\n";
+            vector<vector<unsigned>> mtx = getDirections(*currentBrushing, i);
+            for (unsigned j = 0; j < 7; j++)
             {
-                returnString += "\n Completely brushing!";
-            }
-            else
-            {
-                //nu avem senzori aprinsi, dar avem ce dinti peria
-                outputBrace = "O"; //output pentru bratara aka ledul este gri nu se periaza, vezi cum faci output pt bratara asta
-                currentBrushing->Graphic_Directions.push_back(outputBrace);
-                vector<int>::iterator x = std::find(verif.begin(), verif.end(), 0);
-                //x = std::find(verif.begin(), verif.end(), 0);
-                while (x != verif.end())
+                for (unsigned k = 0; k < 8; k++)
                 {
-                    // avem ce dinti peria
-                    returnString += "You brushing " + *x;
-                    returnString += " and " + ((*x) + 1);
-                    returnString += " teeth \n";
-                    verif[*x] = 1;
-                    verif[(*x) + 1] = 1;
-                    x = std::find(verif.begin(), verif.end(), 0);
+                    if (mtx[j][k])
+                        returnString += "* ";
+                    else
+                        returnString += " ";
                 }
+                returnString += "\n";
             }
         }
-        else
+        for (unsigned i = 8; i <= 1; i--)
         {
-            if (getLedsColorFromString(Colors[i]) == 4)
+            //8 -> 1
+            returnString += "Tooth ";
+            returnString += i + "\n";
+            vector<vector<unsigned>> mtx = getDirections(*currentBrushing, i);
+            for (unsigned j = 0; j < 7; j++)
             {
-                // trebuie dat off pentru ca utilizatorul sangereaza, deci se revine la pozitia initiala de periere
-                outputBrace = "X"; //apare conditie de stop pe bratara pentru sangerare
-                currentBrushing->Graphic_Directions.push_back(outputBrace);
-                if (det_dirct == 0 || det_dirct == 1)
+                for (unsigned k = 0; k < 8; k++)
                 {
-                    returnString += "Your " + current_teeth.first;
-                    returnString += " and " + current_teeth.second;
-                    returnString += " teeth are bleeding.";
-                    current_teeth.first = configuration.STeeth[configuration.STeeth.size() / 4];
-                    current_teeth.second = configuration.STeeth[configuration.STeeth.size() / 4] + 1;
-                    returnString += " After you rinse your mouth, we restart the programm from " + current_teeth.first;
-                    returnString += " and " + current_teeth.second;
-                    returnString += " teeth. \n";
-                    // nu marcam dintele care periaza ca fiind periat deoarce vom reveni asupra lui in caz ca va fi nevoie
+                    if (mtx[j][k])
+                        returnString += "* ";
+                    else
+                        returnString += " ";
                 }
-            }
-            else
-            {
-                int cst = getLedsColorFromString(Colors[i]);
-                if (cst == 2) //dreapta, deci merg inapoi
-                {
-                    cst = -1;
-                    outputBrace = "==>";
-                    currentBrushing->Graphic_Directions.push_back(outputBrace);
-                }
-                if (cst == 3) //stanga, deci merg inainte
-                {
-                    cst = 1;
-                    outputBrace = "<==";
-                    currentBrushing->Graphic_Directions.push_back(outputBrace);
-                }
-                if (cst == -1 || cst == 1)
-                {
-                    //periere stg sau dreapta
-                    if ((!det_dirct || det_dirct == 1))
-                    {
-                        //pornim de la incisivii de sus, adunam cst pentru ca daca e dreapta scade cu 1, iar daca e stg creste
-                        // nu mai testez limitele pentru ca daca nu ar mai avea dinti, nu ar mai fi leduri colorate
-                        current_teeth.first += cst;
-                        current_teeth.second += cst;
-                        verif[current_teeth.first] = 1;
-                        verif[current_teeth.second] = 1;
-                        returnString += "You brushing " + current_teeth.first;
-                        returnString += " and " + current_teeth.second;
-                        returnString += " teeth \n";
-                    }
-                    else if (det_dirct == -1)
-                    {
-                        //incepem de la incisivii de jos
-                        current_teeth.first -= cst;
-                        current_teeth.second -= cst;
-                        verif[current_teeth.first] = 1;
-                        verif[current_teeth.second] = 1;
-                        returnString += "You brushing " + current_teeth.first;
-                        returnString += " and " + current_teeth.second;
-                        returnString += " teeth \n";
-                    }
-                }
-                else
-                {
-                    returnString += "Colour " + Colors[i];
-                    returnString += " doesn't exist! \n";
-                }
+                returnString += "\n";
             }
         }
     }
-
-    //am terminat vectorul de leduri, nu mai sunt directii recomandate, dar totusi mai avem dinti neperiati
-    vector<int>::iterator x = std::find(verif.begin(), verif.end(), 0);
-    while (x != verif.end())
+    if ((int)configuration.program == 1 || (int)configuration.program == 3)
     {
-        // avem ce dinti peria
-        returnString += "You brushing " + *x;
-        returnString += " and " + ((*x) + 1);
-        returnString += " teeth \n";
-        verif[*x] = 1;
-        verif[(*x) + 1] = 1;
-        x = std::find(verif.begin(), verif.end(), 0);
+        //periati dintii de jos acum 24->17
+        for (unsigned i = 24; i >= 17; i--)
+        {
+            returnString += "Tooth ";
+            returnString += i + "\n";
+            vector<vector<unsigned>> mtx = getDirections(*currentBrushing, i);
+            for (unsigned j = 0; j < 7; j++)
+            {
+                for (unsigned k = 0; k < 8; k++)
+                {
+                    if (mtx[j][k])
+                        returnString += "* ";
+                    else
+                        returnString += " ";
+                }
+                returnString += "\n";
+            }
+        }
+        for (unsigned i = 25; i <= 32; i--)
+        {
+            //25->32
+            returnString += "Tooth ";
+            returnString += i + "\n";
+            vector<vector<unsigned>> mtx = getDirections(*currentBrushing, i);
+            for (unsigned j = 0; j < 7; j++)
+            {
+                for (unsigned k = 0; k < 8; k++)
+                {
+                    if (mtx[j][k])
+                        returnString += "* ";
+                    else
+                        returnString += " ";
+                }
+                returnString += "\n";
+            }
+        }
+    }
+    if ((int)configuration.program == 4)
+    {
+        currentBrushing->Leds.push_back("Grey");
     }
 
     std::string Statistics = statistics();
     saveUserStats(configuration.stats);
     returnString += Statistics;
-    currentBrushing->History.push_back(returnString); //se creaza istoricul cu dintii periati
+    currentBrushing->History.push_back(returnString);
     saved_Brushing.push_back(currentBrushing);
 }
-*/
+
+void getDirections(const Rest::Request &request, Http::ResponseWriter response)
+{
+    std::string returnString = "No brushing available!";
+    unsigned j = 0;
+    for (Brushing *&currBrushing : saved_Brushing)
+    {
+        returnString = "";
+        for (unsigned i = 0; i < currBrushing->Directions.size(); ++i)
+        {
+            returnString += "Colour is ";
+            returnString += currBrushing->Leds[i];
+            returnString += ", direction is ";
+            returnString += currBrushing->Directions[i];
+            //returnString += currBrushing->Graphic_Directions[i]; //pt ca bratara
+            returnString += '\n';
+            returnString += "================================";
+        }
+        returnString += currBrushing->History[j];
+        returnString += '\n';
+        returnString += "======================================= \n";
+    }
+
+    response.send(Http::Code::Ok, returnString.c_str());
+}
