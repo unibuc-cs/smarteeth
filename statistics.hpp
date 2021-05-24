@@ -22,8 +22,9 @@ struct UserStats
     std::vector<std::vector<BrushingData>> oneYearHistory;
     //data ultimului periaj
     std::string lastBrushingDate;
-    int minimBrushings = 0;
-    int maximBrushings = 0;
+    int minimBrushings;
+    int maximBrushings;
+    std::vector<int> tartrumHistory;
 };
 
 void addBrushingData(const std::string &name, BrushingData data);

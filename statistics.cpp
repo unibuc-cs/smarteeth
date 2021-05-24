@@ -20,7 +20,11 @@ void addBrushingData(const std::string &name, BrushingData data)
 {
     if (stats.count(name) == 0)
     {
-        stats[name] = UserStats{};
+        UserStats newStats;
+        newStats.tartrumHistory = std::vector<int>(50);
+        newStats.minimBrushings = 99999;
+        newStats.maximBrushings = -1;
+        stats[name] = newStats;
     }
 
     UserStats &userStats = stats[name];
@@ -38,6 +42,29 @@ void addBrushingData(const std::string &name, BrushingData data)
     }
 
     userStats.lastBrushingDate = today;
+
+    const auto &t = data.teethWithTartrum;
+
+    for (int tooth : t)
+    {
+        userStats.tartrumHistory[tooth]++; //daca am gasit tartru, cresc nr de periaje necesare
+    }
+
+    for (int i = 0; i < 32; i++)
+    {
+        if (find(t.begin(), t.end(), i) == t.end() && userStats.tartrumHistory[i] > 0) //daca dintele e curat, dar la periajele trecute nu era
+        {
+            //statistica legata de tartru este de forma
+            //"Sunt necesare intre minimPeriaje si maximPeriaje pentru a elimina tartrul de pe un dinte."
+
+            if (userStats.tartrumHistory[i] < userStats.minimBrushings)
+                userStats.minimBrushings = userStats.tartrumHistory[i];
+            if (userStats.tartrumHistory[i] > userStats.maximBrushings)
+                userStats.maximBrushings = userStats.tartrumHistory[i];
+
+            userStats.tartrumHistory[i] = 0; //resetam counterul
+        }
+    }
 }
 
 json getStatistics(const std::string &name)
@@ -82,31 +109,6 @@ json getStatistics(const std::string &name)
     bleedingYear /= nrYear;
     bleedingYear *= 100;
 
-    int minimBrushings = 9999;
-    int maximBrushings = -1;
-
-    auto t = oneYearHistory.back().back().teethWithTartrum;
-    auto tartrumHistory = std::vector<int>(50);
-
-    for (unsigned int i = 0; i < t.size(); i++)
-    {
-        tartrumHistory[t[i]]++; //daca am gasit tartru, cresc nr de periaje necesare
-    }
-    for (int i = 0; i < 32; i++)
-    {
-        if (find(t.begin(), t.end(), i) == t.end() && tartrumHistory[i] > 0) //daca dintele e curat, dar la periajele trecute nu era
-        {
-            //statistica legata de tartru este de forma
-            //"Sunt necesare intre minimPeriaje si maximPeriaje pentru a elimina tartrul de pe un dinte."
-
-            if (tartrumHistory[i] < minimBrushings)
-                minimBrushings = tartrumHistory[i];
-            if (tartrumHistory[i] > maximBrushings)
-                maximBrushings = tartrumHistory[i];
-            tartrumHistory[i] = 0; //resetam counterul
-        }
-    }
-
     json j;
 
     j["lastMonth"]["brushingTime"] = timeMonth;
@@ -115,8 +117,8 @@ json getStatistics(const std::string &name)
     j["lastYear"]["brushingTime"] = timeYear;
     j["lastYear"]["bleedingPercent"] = bleedingYear;
 
-    j["tartrumRemoval"]["min"] = minimBrushings;
-    j["tartrumRemoval"]["max"] = maximBrushings;
+    j["tartrumRemoval"]["min"] = userStats.minimBrushings;
+    j["tartrumRemoval"]["max"] = userStats.maximBrushings;
 
     return j;
 }
