@@ -4,9 +4,9 @@ Software care simulează o periuță de dinți inteligentă.
 
 ## Dependencies
 
-Pe Ubuntu, trebuie instalate și următoarele package-uri:
+Aplicația folosește [nlohmann/json](https://github.com/nlohmann/json) pentru a prelucra formatul JSON. Pe Ubuntu, trebuie instalat package-ul `nlohmann-json3-dev`.
 
-- `nlohmann-json3-dev`
+Pentru clientul de MQTT trebuie instalată biblioteca [Paho](https://github.com/eclipse/paho.mqtt.cpp#unix-and-linux). Mesajele sunt transmise unui server MQTT, cum ar fi Eclipse [Mosquitto](https://mosquitto.org/).
 
 ## Rulare
 

@@ -5,6 +5,7 @@
 #include <pistache/endpoint.h>
 #include <pistache/router.h>
 #include <nlohmann/json.hpp>
+#include <mqtt/client.h>
 
 using namespace std;
 using namespace Pistache;
@@ -149,6 +150,34 @@ void getConfigure(const Rest::Request& request, Http::ResponseWriter response)
     response.send(Http::Code::Ok, returnString.c_str());
 }
 int main() {
+    const std::string clientId = "smarteeth";
+
+    // Create a client
+    mqtt::client client("localhost", clientId);
+
+    mqtt::connect_options options;
+    options.set_keep_alive_interval(20);
+    options.set_clean_session(true);
+
+    try {
+        // Connect to the client
+        client.connect(options);
+
+        // Create a message
+        const std::string TOPIC = "toothbrush";
+        const std::string PAYLOAD = "Starting";
+        auto msg = mqtt::make_message(TOPIC, PAYLOAD);
+
+        // Publish it to the server
+        client.publish(msg);
+
+        // Disconnect
+        client.disconnect();
+    }
+    catch (const mqtt::exception& exc) {
+        std::cerr << exc.what() << " [" << exc.get_reason_code() << "]" << std::endl;
+    }
+
     // Set up routes
     Router router;
 
