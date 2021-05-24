@@ -374,6 +374,108 @@ string statistics()
 //------------------------------------------------------------
 
 
+// Conditiile verificate inaintea periajului. Temperatura maxima este cu 7
+// grade mai mica decat temperatura la care se pot produce arsuri ale pielii.
+// Cand umiditatea din aer scade sub 20%, gura se usuca, fiind necesar sa
+// fie umezita periuta.
+struct Conditions {
+    int toothpasteWeight;
+    int temperature;
+    int humidity;
+};
+
+// Aici tinem minte cat am periat fiecare zona.
+std::vector<int> timeSpentOnArea;
+
+// Verificarea conditiilor dinaintea periajului.
+std::string checkCond(Conditions* cond) {
+    if(cond == nullptr)
+        return "err";
+
+    if(cond->toothpasteWeight < 1)
+        return "Cantitate insuficienta de pasta de dinti.";
+    if(cond->toothpasteWeight > 5)
+        return "Cantitate exagerata de pasta de dinti.";
+    if(cond->temperature < 10)
+        return "Temperatura prea scazuta.";
+    if(cond->temperature > 45)
+        return "Temperatura prea ridicata.";
+    if(cond->humidity < 20)
+        return "Umeziti periuta de dinti.";
+
+    return "Conditii optime pentru periaj.";
+}
+
+// Functia este apelata impreuna cu moveBrush cand este detectata miscare.
+// Din momentul in care periuta este mutata pe o zona anume, numara timpul
+// de periaj si anunta utilizatorul cand poate muta periuta.
+std::string checkBrushing() {
+    auto end = high_resolution_clock::now();
+    auto time_span = std::chrono::duration_cast<std::chrono::seconds>(end - start);
+
+    // Aici 30 parea idealul, a mea dupa 30 bazaie (cred).
+    while(time_span.count() < 30) {
+        end = high_resolution_clock::now();
+        time_span = std::chrono::duration_cast<std::chrono::seconds>(end - start);
+    }
+    return "Zona curata, mutati periuta.";
+}
+
+// Cand periuta este mutata, verifica si retine ce durata a avut periajul
+// pe zona precedenta.
+void moveBrush() {
+    // ok stiu ca asta arata putin dubios dar face ce trebuie ca trebuie sa faca
+    auto previousStart = start;
+    start = high_resolution_clock::now();
+    auto time_span = std::chrono::duration_cast<std::chrono::seconds>(start - previousStart);
+    timeSpentOnArea.push_back(time_span.count());
+}
+
+std::string tostring(const int& value) {
+    std::stringstream ss;
+    ss << value;
+    return ss.str();
+}
+
+// Aici anunta utilizatorul pe care zone ar fi trebuit insistat dupa
+// incetarea periajului.
+std::vector<std::string> checkBrushingTime() {
+    std::vector<std::string> v;
+    int count = 0;
+    std::string insuf = "Timp insuficient de periaj pe a ";
+    std::string poz1 = "Timp insuficient de periaj pe prima zona.";
+    std::string neg1 = "Timp suficient de periaj pe prima zona.";
+    std::string zona = "-a zona.";
+    std::string suf = "Timp suficient de periaj pe a ";
+    for(auto& it : timeSpentOnArea) {
+        count ++;
+        if(it < 30) {
+            if(count > 1) {
+                std::string rasp = insuf + tostring(count) + zona;
+                v.push_back(rasp); // timp insuficient, indice >=2
+            }
+            else {
+                v.push_back(neg1); // timp insuficient, indice 1
+            }
+        }
+        else{
+            if(count > 1) {
+                std::string rasp = suf + tostring(count) + zona;
+                v.push_back(rasp); // timp suficient, indice >= 2
+            }
+            else {
+                v.push_back(poz1); // timp suficient, indice 1
+            }
+
+        }
+    }
+    return v;
+}
+
+
+//-----------------------------------------------------------
+
+
 int getLedsColorFromString(string& s)
 {
     /*
