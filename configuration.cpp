@@ -5,13 +5,13 @@
 /// Maps names to configuration objects
 std::unordered_map<std::string, Configuration> configs;
 
-void setConfiguration(const std::string& name, Configuration config)
+void setConfiguration(const std::string &name, Configuration config)
 {
     //ATENTIE!! Numele este unic, daca se primesc alte setari cu acelasi nume se considera update.
     configs.insert_or_assign(name, config);
 }
 
-const Configuration& getConfiguration(const std::string& name)
+const Configuration &getConfiguration(const std::string &name)
 {
     return configs.at(name);
 }

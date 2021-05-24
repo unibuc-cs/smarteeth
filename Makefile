@@ -13,5 +13,5 @@ clean:
 run:
 	./smarteeth
 
-smarteeth: smarteeth.o brushing.o configuration.o mqtt.o health.o
+smarteeth: smarteeth.o brushing.o configuration.o mqtt.o health.o statistics.o
 	$(CXX) $^ -o $@ $(CXXFLAGS) $(LDFLAGS)

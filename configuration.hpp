@@ -13,6 +13,7 @@ enum class ProgramType
 
 struct Configuration
 {
+    std::string name;
     int age;
     ProgramType program;
     /*
@@ -24,6 +25,6 @@ struct Configuration
     std::vector<int> teeth;
 };
 
-void setConfiguration(const std::string& name, Configuration config);
-const Configuration& getConfiguration(const std::string& name);
+void setConfiguration(const std::string &name, Configuration config);
+const Configuration &getConfiguration(const std::string &name);
 std::string getProgramName(ProgramType program);

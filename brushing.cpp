@@ -5,6 +5,7 @@
 
 #include "configuration.hpp"
 #include "mqtt.hpp"
+#include "statistics.hpp"
 
 using Clock = std::chrono::high_resolution_clock;
 using TimePoint = std::chrono::time_point<Clock>;
@@ -13,6 +14,7 @@ static Conditions conditions;
 static const Configuration *currentConfig;
 static TimePoint startTime;
 static bool brushingInProgress = false;
+static BrushingData currentBrushingData;
 // Aici tinem minte cat am periat fiecare zona.
 static std::vector<int> timeSpentOnArea;
 
@@ -61,11 +63,13 @@ void startBrushing(const Configuration *configuration)
 
     checkConditions();
 
-    startTime = Clock::now();
     timeSpentOnArea = std::vector<int>();
 
     currentConfig = configuration;
     brushingInProgress = true;
+    currentBrushingData = BrushingData{};
+
+    startTime = Clock::now();
 
     mqttPublishMessage("brushing", "started");
 }
@@ -76,6 +80,17 @@ void stopBrushing()
     {
         throw std::runtime_error("Brushing hasn't started yet");
     }
+
+    // Compute total brushing time
+    int totalTime = 0;
+    for (int areaTime : timeSpentOnArea)
+    {
+        totalTime += areaTime;
+    }
+    currentBrushingData.time = totalTime;
+
+    // Save brushing data
+    addBrushingData(currentConfig->name, currentBrushingData);
 
     brushingInProgress = false;
     currentConfig = nullptr;
@@ -96,6 +111,16 @@ int getCurrentTooth()
     }
 
     return timeSpentOnArea.size() + 1;
+}
+
+void signalTartrum()
+{
+    currentBrushingData.teethWithTartrum.push_back(getCurrentTooth());
+}
+
+void signalBleeding()
+{
+    currentBrushingData.bleeding = true;
 }
 
 void moveBrush()

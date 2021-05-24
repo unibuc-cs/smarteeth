@@ -8,19 +8,17 @@
 #include <algorithm>
 #include <pistache/endpoint.h>
 #include <pistache/router.h>
-#include <nlohmann/json.hpp>
 
 #include "brushing.hpp"
 #include "configuration.hpp"
 #include "health.hpp"
+#include "json.hpp"
 #include "mqtt.hpp"
+#include "statistics.hpp"
 
 using namespace Pistache;
 using namespace Pistache::Http;
 using namespace Pistache::Rest;
-
-// Convenient namespace alias
-using json = nlohmann::json;
 
 void setConfigurationRoute(const Rest::Request &request, Http::ResponseWriter response)
 {
@@ -31,6 +29,7 @@ void setConfigurationRoute(const Rest::Request &request, Http::ResponseWriter re
     const auto name = params["name"];
 
     Configuration config;
+    config.name = name;
     config.age = params["age"];
     config.program = params["program"];
 
@@ -192,6 +191,15 @@ void checkGumBleedingRoute(const Rest::Request &request, Http::ResponseWriter re
     response.send(Http::Code::Ok, j.dump());
 }
 
+void getStatisticsRoute(const Rest::Request &request, Http::ResponseWriter response)
+{
+    const auto name = request.param(":name").as<std::string>();
+
+    const auto stats = getStatistics(name);
+
+    response.send(Http::Code::Ok, stats.dump());
+}
+
 int main()
 {
     // Set up routes
@@ -229,6 +237,9 @@ int main()
     router.post("/health/toothColor/:value", Routes::bind(updateToothColorRoute));
     router.get("/health/tartrum", Routes::bind(checkTartrumRoute));
     router.get("/health/gumBleeding", Routes::bind(checkGumBleedingRoute));
+
+    // GET /statistics/{user name}
+    router.get("/statistics/:name", Routes::bind(getStatisticsRoute));
 
     // Configure server
     const std::string host = "localhost";

@@ -2,6 +2,8 @@
 
 #include <stdexcept>
 
+#include "brushing.hpp"
+
 const static float TARTRUM_THRESHOLD = 40;
 const static float BLEEDING_THRESHOLD = 70;
 
@@ -25,7 +27,7 @@ ToothHealthInfo checkTartrum()
 
     if (hasTartrum)
     {
-        // TODO: statistics
+        signalTartrum();
     }
 
     return ToothHealthInfo{intensity, hasTartrum};
@@ -40,7 +42,7 @@ ToothHealthInfo checkGumBleeding()
 
     if (isBleeding)
     {
-        // TODO: statistics
+        signalBleeding();
     }
 
     return ToothHealthInfo{intensity, isBleeding};
