@@ -198,7 +198,7 @@
 				"method": "POST",
 				"header": [],
 				"url": {
-					"raw": "localhost:9080/health/toothColor/180",
+					"raw": "localhost:9080/health/toothColor/0",
 					"host": [
 						"localhost"
 					],
@@ -206,7 +206,7 @@
 					"path": [
 						"health",
 						"toothColor",
-						"180"
+						"0"
 					]
 				}
 			},
@@ -226,6 +226,25 @@
 					"path": [
 						"health",
 						"tartrum"
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "Check for gum bleeding",
+			"request": {
+				"method": "GET",
+				"header": [],
+				"url": {
+					"raw": "localhost:9080/health/gumBleeding",
+					"host": [
+						"localhost"
+					],
+					"port": "9080",
+					"path": [
+						"health",
+						"gumBleeding"
 					]
 				}
 			},
@@ -264,25 +283,6 @@
 					"path": [
 						"brushing",
 						"time"
-					]
-				}
-			},
-			"response": []
-		},
-		{
-			"name": "Check for gum bleeding",
-			"request": {
-				"method": "GET",
-				"header": [],
-				"url": {
-					"raw": "localhost:9080/health/gumBleeding",
-					"host": [
-						"localhost"
-					],
-					"port": "9080",
-					"path": [
-						"health",
-						"gumBleeding"
 					]
 				}
 			},
