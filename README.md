@@ -10,7 +10,7 @@ Pentru clientul de MQTT trebuie instalată biblioteca [Paho](https://github.com/
 
 ## Rulare
 
-Pentru a compila și rula serverul se poate folosi comanda `make all`.
+Pentru a compila și rula serverul se poate folosi comanda `make`.
 
 Rutele se pot testa folosind o unealtă precum [Postman](https://www.postman.com/).
 
