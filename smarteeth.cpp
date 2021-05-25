@@ -53,6 +53,7 @@ void setConfigurationRoute(const Rest::Request &request, Http::ResponseWriter re
     }
 
     setConfiguration(name, config);
+    saveConfigurations();
 
     response.send(Http::Code::Ok, "Configuration Saved!");
 }
@@ -214,6 +215,9 @@ void getStatisticsRoute(const Rest::Request &request, Http::ResponseWriter respo
 
 int main()
 {
+    // Load saved configs from disk
+    loadConfigurations();
+
     // Set up routes
     Router router;
 

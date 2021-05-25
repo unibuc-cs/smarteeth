@@ -2,5 +2,5 @@
 
 #include <nlohmann/json.hpp>
 
-// Convenient namespace alias
+// Convenient type alias
 using json = nlohmann::json;

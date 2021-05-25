@@ -28,3 +28,6 @@ struct Configuration
 void setConfiguration(const std::string &name, Configuration config);
 const Configuration &getConfiguration(const std::string &name);
 std::string getProgramName(ProgramType program);
+
+void loadConfigurations();
+void saveConfigurations();
