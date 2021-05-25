@@ -123,6 +123,11 @@ void signalBleeding()
     currentBrushingData.bleeding = true;
 }
 
+bool isBleeding()
+{
+    return currentBrushingData.bleeding;
+}
+
 void moveBrush()
 {
     if (!brushingInProgress)

@@ -38,6 +38,8 @@ int getCurrentTooth();
 void signalTartrum();
 void signalBleeding();
 
+bool isBleeding();
+
 // Cand periuta este mutata, retine ce durata a avut periajul
 // pe zona precedenta.
 void moveBrush();

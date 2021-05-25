@@ -11,6 +11,7 @@
 
 #include "brushing.hpp"
 #include "configuration.hpp"
+#include "directions.hpp"
 #include "health.hpp"
 #include "json.hpp"
 #include "mqtt.hpp"
@@ -129,6 +130,17 @@ void to_json(json &output, const BrushingTimeReport &r)
         {"sufficientTime", r.sufficientTime}};
 }
 
+void getBrushingDirectionRoute(const Rest::Request &request, Http::ResponseWriter response)
+{
+    const auto colorAndDirections = getLedsColorAndDirections();
+
+    std::string output;
+    output += "color: " + getLedsColorAsString(colorAndDirections.first) + "\n";
+    output += getDirectionsAsString(colorAndDirections.second);
+
+    response.send(Http::Code::Ok, output);
+}
+
 void moveBrushRoute(const Rest::Request &request, Http::ResponseWriter response)
 {
     moveBrush();
@@ -226,6 +238,8 @@ int main()
     // POST /brushing/stop
     router.post("/brushing/stop", Routes::bind(stopBrushingRoute));
 
+    // GET /brushing/direction
+    router.get("/brushing/direction", Routes::bind(getBrushingDirectionRoute));
     // POST /brushing/move
     router.post("/brushing/move", Routes::bind(moveBrushRoute));
     // GET /brushing/check
