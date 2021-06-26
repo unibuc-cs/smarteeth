@@ -272,8 +272,8 @@ int main()
     mqttConnect();
 
     // Start server
-    std::cout << "Server listening on http://" << host << ':' << port << '\n';
-    std::cout << "Press Ctrl + C to quit\n";
+    std::cout << "Server listening on http://" << host << ':' << port << std::endl;
+    std::cout << "Press Ctrl + C to quit" << std::endl;
     endpoint.serve();
 
     mqttDisconnect();
