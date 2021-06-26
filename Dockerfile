@@ -31,7 +31,9 @@ WORKDIR /app
 RUN make build && chmod 755 ./smarteeth
 
 # Run
+COPY ./delay.sh /delay.sh
+RUN chmod 755 /delay.sh
 EXPOSE 9080
 RUN useradd -m dorel
 USER dorel
-CMD ["./smarteeth"]
+CMD ["/delay.sh", "1", "./smarteeth"]
