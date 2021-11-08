@@ -7,20 +7,32 @@ info:
     url: http://github.com/raresito
   version: 1.0.0
 servers:
+  # Added by API Auto Mocking Plugin
+  - description: SwaggerHub API Auto Mocking
+    url: https://virtserver.swaggerhub.com/JustBeYou/smarteeth/1.0.0
   - url: http://141.85.232.40:9080
 paths:
-    /configuration/{username}:
-    description: Set preferences of user
-    get:
-      description: What temperature to warm the liquid at
-      parameters:
+  /configuration/{username}:
+    parameters:
       - in: path
         name: username
         required: true
         schema:
           type: string
           example: David
+  
+    description: Set preferences of user
+    get:
+      description: What temperature to warm the liquid at
+      responses:
+        200:
+          description: Ok  
+      
     post:
+      responses:
+        200:
+          description: Ok
+    
       requestBody:
         description: Set preferences of user
         content:
@@ -41,97 +53,134 @@ paths:
                       type: array
                       items:
                         type: integer
-    /brushing/conditions/check:
-      description: Brushing activities
-      get:
-        description: Check status of brushing
+  /brushing/conditions/check:
+    description: Brushing activities
+    get:
+      description: Check status of brushing
+      responses:
+        200:
+          description: Ok
 
-    /brushing/conditions/toothpasteWeight/{amount}:
-      description: Set amount of tooth paste
-      post:
-        parameters:
-        - in: path
+  /brushing/conditions/toothpasteWeight/{amount}:
+    description: Set amount of tooth paste
+    parameters:
+      - in: path
         name: amount
         required: true
         schema:
           type: integer
           example: 1
+    post:
+      responses:
+        200:
+          description: Ok
 
-    /brushing/conditions/temperature/{temperatureValue}:
-      description: Set temperature of brush
-      post:
-        parameters:
-        - in: path
+  /brushing/conditions/temperature/{temperatureValue}:
+    description: Set temperature of brush
+    parameters:
+      - in: path
         name: temperatureValue
         required: true
         schema:
           type: integer
           example: 30
+    post:
+      responses:
+        200:
+          description: Ok
       
-    /brushing/conditions/humidity/{humidityValue}:
-      description: Set humidity tooth paste
-      post:
-        parameters:
-        - in: path
+  /brushing/conditions/humidity/{humidityValue}:
+    description: Set humidity tooth paste
+    parameters:
+      - in: path
         name: humidityValue
         required: true
         schema:
           type: integer
           example: 25
+    post:
+      responses:
+        200:
+          description: Ok
 
-    /brushing/start/{username}:
-      description: Start brushing for username
-      post:
-        parameters:
+  /brushing/start/{username}:
+    description: Start brushing for username
+    post:
+      responses:
+          200:
+            description: Ok
+      parameters:
         - in: path
-        name: username
-        required: true
-        schema:
-          type: string
-          example: David
+          name: username
+          required: true
+          schema:
+            type: string
+            example: David
 
-    /brushing/direction:
+  /brushing/direction:
+    description: Get the direction of brushing
+    get:
+      responses:
+        200:
+          description: Ok
       description: Get the direction of brushing
-      get:
-        description: Get the direction of brushing
 
-    /brushing/move:
+  /brushing/move:
+    description: Start movement of brush
+    post:
+      responses:
+        200:
+          description: Ok
       description: Start movement of brush
-      post:
-        description: Start movement of brush
 
-    /brushing/time:
+  /brushing/time:
+    description: Check brushing time
+    get:
+      responses:
+          200:
+            description: Ok
       description: Check brushing time
-      get:
-        description: Check brushing time
 
-    /health/toothColor/{toothColorValue}:
-      description: Set value for tooth color
-      post:
-        parameters:
+  /health/toothColor/{toothColorValue}:
+    description: Set value for tooth color
+    post:
+      responses:
+        200:
+          description: Ok
+      parameters:
         - in: path
-        name: toothColorValue
-        required: true
-        schema:
-          type: integer
-          example: 0
-    /health/tartrum:
+          name: toothColorValue
+          required: true
+          schema:
+            type: integer
+            example: 0
+        
+  /health/tartrum:
+    description: Check if user has tartrum
+    get:
+      responses:
+        200:
+          description: Ok
       description: Check if user has tartrum
-      get:
-        description: Check if user has tartrum
 
-    /health/gumBleeding:
+  /health/gumBleeding:
+    description: Check if user has gum bleeding
+    get:
+      responses:
+        200:
+          description: Ok
       description: Check if user has gum bleeding
-      get:
-        description: Check if user has gum bleeding
 
-    /statistics/{username}:
-      description: Get statistics for username
-      get:
-        parameters:
+  /statistics/{username}:
+    description: Get statistics for username
+    get:
+      responses:
+        200:
+          description: Ok
+      parameters:
         - in: path
-        name: username
-        required: true
-        schema:
-          type: string
-          example: David
+          name: username
+          required: true
+          schema:
+            type: string
+            example: David
